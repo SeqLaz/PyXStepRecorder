@@ -33,7 +33,7 @@ It is perfect for creating:
 ### 1. Clone the Repository
 
 ```shell
-git clone https://github.com/...
+git clone https://github.com/SeqLaz/PyXStepRecorder.git
 cd PyXStepRecorder
 ```
 
