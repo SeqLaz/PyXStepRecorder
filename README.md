@@ -43,8 +43,8 @@ Recommended using a virtual environment:
 
 ```shell
 python -m venv .venv
-source venv/bin/activate  # On Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+source .venv/bin/activate  # On Windows Powershell: .venv\Scripts\Activate.ps1
+pip install fire pynput Pillow
 ```
 
 ## 🚀 Usage
