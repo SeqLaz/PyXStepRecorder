@@ -1,6 +1,6 @@
 # 📸 PyXStepRecorder
 
-**PyXStepRecorder**  is a lightweight Python tool that automates the creation of visual, step-by-step documentation.
+**PyXStepRecorder**  is a lightweight Python tool that automates the creation of visual, step-by-step screenshots.
 Inspired by [xsr](https://github.com/nonnymoose/xsr), it sits quietly in the background, capturing your screen only when you click,
 and instantly compiling everything into a single, portable HTML file.
 
@@ -19,7 +19,7 @@ It is perfect for creating:
 * **Event-Driven Recording:** Only takes screenshots when you click (Left, Right, or Middle).
 * **Visual Feedback:** Overlays a custom cursor image on screenshots to show exactly where you clicked.
 * **Single-File Output:** Generates a standalone HTML file with embedded images (Base64) — no external image folders to manage.
-* **Lightweight:** Uses static images instead of video, making files small and easy to email.
+* **Lightweight:** Uses static images instead of video, making files small and easy to share on emails.
 * **CLI Support:** Fully configurable via command line using [Google Fire](https://github.com/google/python-fire).
 
 ---
@@ -55,7 +55,7 @@ PyXStepRecorder uses a CLI interface. You can define your output path, custom cu
 
 ```shell
 cd py_xsr
-python py_xsr.py --outfile="./steps/my_guide_001.html"
+python py_xsr.py --outfile="C:Users/my_username/Documents/steps/my_guide_001.html"
 ```
 
 ### Advanced Configuration
@@ -70,7 +70,7 @@ python py_xsr.py --outfile="./steps/my_guide_001.html"
 Using flags for custom settings:
 
 ```shell
-python ./py_xsr/py_xsr.py --outfile="./docs/tutorial_01.html" --cursor="./assets/custom_pointer.png" --quality=60 --png=False
+python py_xsr.py --outfile="C:Users/my_username/Documents/steps/tutorial_001.html" --cursor="C:Users/my_username/Downloads/custom_cursor.png" --quality=60 --png=False
 ```
 
 Upon stopping the script (usually Ctrl+C), it wraps all captured steps into a responsive HTML template.
