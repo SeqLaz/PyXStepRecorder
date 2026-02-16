@@ -1,9 +1,21 @@
+"""
+PyXStepRecorder: A Python utility for recording screen interactions.
+
+This script listens for mouse clicks globally, captures a screenshot at each
+click with a custom cursor overlay, and compiles the sequence of steps into
+an HTML report. It relies on `pynput` for input monitoring and `Pillow` for
+image processing.
+
+Usage:
+    Can be run as a standalone CLI tool via `fire`.
+    Example: python script_name.py --outfile="report.html" --png=True
+"""
+
 import sys
 import time
-import fire
 import tempfile
 import shutil
-from threading import Lock
+from threading import Lock, Event
 from dataclasses import dataclass, field
 from typing import List, Optional
 from pathlib import Path
@@ -11,7 +23,7 @@ from pathlib import Path
 from html_exporter import GenerateReport
 
 try:
-    from pynput import mouse
+    from pynput import mouse, keyboard
     from pynput.mouse import Button
     from PIL import Image, ImageGrab
 except ImportError:
@@ -82,6 +94,7 @@ class PyXStepRecorder:
         _temp_dir (Path): Temporary directory for storing screenshots before
             HTML generation.
         _screen_counter (int): Counter to ensure unique screenshot filenames.
+        __stop_event (Event): Caller for the stop event.
     """
 
     cfg: RecorderConfig
@@ -90,6 +103,7 @@ class PyXStepRecorder:
     steps: List[RecordedStep] = field(default_factory=list)
     _temp_dir: Path = field(default_factory=lambda: Path(tempfile.mkdtemp()))
     _screen_counter: int = 0
+    _stop_event: Event = field(default_factory=Event)
 
     def __post_init__(self) -> None:
         """Initializes the mouse controller and loads the cursor image."""
@@ -122,7 +136,6 @@ class PyXStepRecorder:
         """
         try:
             screenshot = ImageGrab.grab()
-
             mouse_x, mouse_y = self.mouse_controller.position
             final_image = screenshot.copy()
 
@@ -134,18 +147,17 @@ class PyXStepRecorder:
             filename = (
                 f"{self.cfg.title}_step_{self._screen_counter}.{self.cfg.image_ext}"
             )
-
             path = Path(self._temp_dir) / filename
 
             save_args = {}
-            if self.cfg.image_ext in ["jpg", "jpeg", "png"]:
-                final_image.save(path, quality=self.cfg.quality)
-            else:
-                final_image.save(path)
+            if self.cfg.image_ext.lower() in ["jpg", "jpeg"]:
+                save_args["quality"] = self.cfg.quality
 
             final_image.save(path, **save_args)
+
             self._screen_counter += 1
             return filename
+
         except Exception as e:
             print(f"Screenshot error: {e}")
             print("Please stop, and review the path to the cursor is correct!")
@@ -159,8 +171,9 @@ class PyXStepRecorder:
             description (str): The description of the user action (mouse clicks).
         """
         with self.lock:
+            if not self.is_recording:
+                return
             img_file = self._take_screenshot()
-
             step = RecordedStep(description=description, image_filename=img_file)
             self.steps.append(step)
 
@@ -177,7 +190,6 @@ class PyXStepRecorder:
             temp_dir=self._temp_dir,
             image_ext=self.cfg.image_ext,
         )
-
         generator.generate_report()
 
     def on_click(self, x: int, y: int, button: Button, pressed: bool) -> None:
@@ -202,24 +214,39 @@ class PyXStepRecorder:
         desc = btn_map.get(button_name, f"Clicked {button_name}")
         self._add_step(desc)
 
+    def _trigger_stop(self):
+        """Callback for global hotkeys to signal the script to stop."""
+        self._stop_event.set()
+
     def start(self) -> None:
-        """
-        Starts the mouse listener and recording loop.
+        """Starts the mouse and keyboard listeners and the recording loop."""
+        self.cfg.outfile.parent.mkdir(parents=True, exist_ok=True)
 
-        Blocks execution until KeyboardInterrupt (Ctrl+C) is received.
-        """
         print(f"Recording to {self.cfg.outfile}")
-        print("Press Ctrl+C in this terminal to stop.")
+        print("Press Ctrl+Esc or Cmd+Esc ANYWHERE to stop capturing.")
 
-        # In a try/except to catch the Ctrl+C
-        with mouse.Listener(on_click=self.on_click) as m_listener:
-            try:
-                m_listener.join()
-            except KeyboardInterrupt:
-                print("\nStopping...")
-                print("\nPlease wait...")
-            finally:
-                self.stop()
+        hotkeys = keyboard.GlobalHotKeys(
+            {
+                "<ctrl>+<esc>": self._trigger_stop,
+                "<cmd>+<esc>": self._trigger_stop,
+            }
+        )
+
+        m_listener = mouse.Listener(on_click=self.on_click)
+
+        hotkeys.start()
+        m_listener.start()
+
+        try:
+            self._stop_event.wait()
+        except KeyboardInterrupt:
+            # If the user happens to hit Ctrl+C inside the terminal itself
+            pass
+        finally:
+            print("\nStopping... Please wait while the report is generated.")
+            hotkeys.stop()
+            m_listener.stop()
+            self.stop()
 
     def stop(self) -> None:
         """
@@ -241,18 +268,22 @@ if __name__ == "__main__":
     def run_recorder(
         outfile="steps/Steps_Recorded.html",
         cursor="resources/Cursor.png",
-        png=True,
+        png=False,
         quality=80,
     ):
         """
         Entry point to start the screen recorder via CLI.
 
         Args:
-            outfile (str): Name of the output HTML file. Defaults to current path "steps/Steps_Recorded.html".
-            cursor (str): Path to a custom cursor image. Defaults to current path in "resources/Cursor.png".
-            png (bool): If True, saves images as PNG. If False, uses JPEG. Defaults to True.
+            outfile (str): Path where the generated HTML report will be saved.
+                Defaults to "steps/Steps_Recorded.html".
+            cursor (str): Path to the custom cursor PNG image.
+                Defaults to "resources/Cursor.png".
+            png (bool): If True, saves screenshots as lossless PNGs. If False,
+                uses JPEG format. Defaults to False.
+            quality (int): Compression quality (1-100) if saving as JPEG.
+                Defaults to 80.
         """
-
         ext = "png" if png else "jpg"
 
         config = RecorderConfig(
