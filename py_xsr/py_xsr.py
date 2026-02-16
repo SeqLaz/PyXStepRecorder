@@ -17,7 +17,7 @@ import tempfile
 import shutil
 from threading import Lock, Event
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import List, Optional, Any
 from pathlib import Path
 
 from html_exporter import GenerateReport
@@ -149,7 +149,7 @@ class PyXStepRecorder:
             )
             path = Path(self._temp_dir) / filename
 
-            save_args = {}
+            save_args: dict[str, Any] = {}
             if self.cfg.image_ext.lower() in ["jpg", "jpeg"]:
                 save_args["quality"] = self.cfg.quality
 
