@@ -189,4 +189,4 @@ class GenerateReport:
         with open(self.outfile, "w", encoding="utf-8") as html_file:
             html_file.write("".join(html_parts))
 
-        print(f"Saved to: {str(self.outfile)}")
+        print(f"\nSaved to: {str(self.outfile)}")

@@ -60,12 +60,12 @@ python py_xsr.py --outfile="C:Users/my_username/Documents/steps/my_guide_001.htm
 
 ### Advanced Configuration
 
-| Flag      | Short | Default               | Description                                          |
-|-----------|-------|-----------------------|------------------------------------------------------|
-| --outfile | -o    | recording.html        | Path and name of the final HTML file.                |
-| --cursor  | -c    | resources/Cursor.png  | Path to the PNG image used for the click overlay.    |
-| --png     | -p    | True                  | Use PNG for lossless quality. Set to False for JPEG. |
-| --quality | -q    | 80                    | Image compression quality (1-100).                   |
+| Flag      | Short | Default               | Description                                                          |
+|-----------|-------|-----------------------|----------------------------------------------------------------------|
+| --outfile | -o    | recording.html        | Path and name of the final HTML file.                                |
+| --cursor  | -c    | resources/Cursor.png  | Path to the PNG image used for the click overlay.                    |
+| --png     | -p    | False                 | Use PNGs for lossless quality. Set to False for JPEG.                |
+| --quality | -q    | 80                    | Image compression quality (1-100) if saving as JPEG. Defaults to 80. |
 
 Using flags for custom settings:
 
@@ -73,7 +73,7 @@ Using flags for custom settings:
 python py_xsr.py --outfile="C:Users/my_username/Documents/steps/tutorial_001.html" --cursor="C:Users/my_username/Downloads/custom_cursor.png" --quality=60 --png=False
 ```
 
-Upon stopping the script (usually Ctrl+C), it wraps all captured steps into a responsive HTML template.
+Upon stopping the script (for this Ctrl+Esc), it wraps all captured steps into a responsive HTML template.
 
 ## 📄 License
 
