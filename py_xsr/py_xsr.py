@@ -19,8 +19,9 @@ from threading import Lock, Event
 from dataclasses import dataclass, field
 from typing import List, Optional, Any
 from pathlib import Path
+from importlib import resources
 
-from html_exporter import GenerateReport
+from .html_exporter import GenerateReport
 
 try:
     from pynput import mouse, keyboard
@@ -49,7 +50,7 @@ class RecorderConfig:
     """
 
     outfile: Path = field(default_factory=lambda: Path("steps/Steps_Recorded.html"))
-    cursor_path: Path = field(default_factory=lambda: Path("resources/Cursor.png"))
+    cursor_path: Optional[Path] = None
     image_ext: str = "png"
     quality: int = 80
 
@@ -118,12 +119,20 @@ class PyXStepRecorder:
             Image.Image | None: The RGBA converted Pillow Image object if found,
             otherwise None.
         """
-        if self.cfg.cursor_path and Path(self.cfg.cursor_path).exists():
+
+        if self.cfg.cursor_path and self.cfg.cursor_path.exists():
             try:
                 return Image.open(self.cfg.cursor_path).convert("RGBA")
             except Exception as e:
-                print("Error loading the cursor image provided")
-                print(f"\n{e}")
+                print(f"Error loading external custom cursor image: {e}")
+
+        try:
+            cursor_resource = resources.files("py_xsr.resources").joinpath("Cursor.png")
+            with resources.as_file(cursor_resource) as path:
+                return Image.open(path).convert("RGBA")
+        except Exception as e:
+            print(f"Error loading internal default cursor asset: {e}")
+
         return None
 
     def _take_screenshot(self) -> Optional[str]:
@@ -262,38 +271,29 @@ class PyXStepRecorder:
             pass
 
 
+def run_recorder(
+    outfile="steps/Steps_Recorded.html",
+    cursor="resources/Cursor.png",
+    png=False,
+    quality=80,
+):
+    """
+    Entry point to start the screen recorder via CLI.
+    """
+    ext = "png" if png else "jpg"
+
+    config = RecorderConfig(
+        outfile=Path(outfile),
+        cursor_path=Path(cursor),
+        image_ext=ext,
+        quality=quality,
+    )
+
+    recorder = PyXStepRecorder(cfg=config)
+    recorder.start()
+
+
 if __name__ == "__main__":
     import fire
-
-    def run_recorder(
-        outfile="steps/Steps_Recorded.html",
-        cursor="resources/Cursor.png",
-        png=False,
-        quality=80,
-    ):
-        """
-        Entry point to start the screen recorder via CLI.
-
-        Args:
-            outfile (str): Path where the generated HTML report will be saved.
-                Defaults to "steps/Steps_Recorded.html".
-            cursor (str): Path to the custom cursor PNG image.
-                Defaults to "resources/Cursor.png".
-            png (bool): If True, saves screenshots as lossless PNGs. If False,
-                uses JPEG format. Defaults to False.
-            quality (int): Compression quality (1-100) if saving as JPEG.
-                Defaults to 80.
-        """
-        ext = "png" if png else "jpg"
-
-        config = RecorderConfig(
-            outfile=Path(outfile),
-            cursor_path=Path(cursor),
-            image_ext=ext,
-            quality=quality,
-        )
-
-        recorder = PyXStepRecorder(cfg=config)
-        recorder.start()
 
     fire.Fire(run_recorder)
