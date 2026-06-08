@@ -15,6 +15,7 @@ import sys
 import time
 import tempfile
 import shutil
+import logging
 from threading import Lock, Event
 from dataclasses import dataclass, field
 from typing import List, Optional, Any
@@ -23,13 +24,22 @@ from importlib import resources
 
 from .html_exporter import GenerateReport
 
+logger = logging.getLogger("py_xsr")
+
+def log(*msgs: Any) -> None:
+    """
+    Routing text chunks through the standard logging framework.
+    """
+    message = " ".join(map(str, msgs))
+    logger.info(message)
+
+
 try:
     from pynput import mouse, keyboard
     from pynput.mouse import Button
     from PIL import Image, ImageGrab
 except ImportError:
-    print("Missing dependencies. Run:\n")
-    print("pip install pynput Pillow")
+    sys.stderr.write("Missing dependencies. Run:\n\npip install pynput Pillow\n")
     sys.exit(1)
 
 
@@ -124,14 +134,14 @@ class PyXStepRecorder:
             try:
                 return Image.open(self.cfg.cursor_path).convert("RGBA")
             except Exception as e:
-                print(f"Error loading external custom cursor image: {e}")
+                log(f"Error loading external custom cursor image: {e}")
 
         try:
             cursor_resource = resources.files("py_xsr.resources").joinpath("Cursor.png")
             with resources.as_file(cursor_resource) as path:
                 return Image.open(path).convert("RGBA")
         except Exception as e:
-            print(f"Error loading internal default cursor asset: {e}")
+            log(f"Error loading internal default cursor asset: {e}")
 
         return None
 
@@ -168,8 +178,8 @@ class PyXStepRecorder:
             return filename
 
         except Exception as e:
-            print(f"Screenshot error: {e}")
-            print("Please stop, and review the path to the cursor is correct!")
+            log(f"Screenshot error: {e}")
+            log("Please stop, and review the path to the cursor is correct!")
             return None
 
     def _add_step(self, description: str) -> None:
@@ -231,8 +241,8 @@ class PyXStepRecorder:
         """Starts the mouse and keyboard listeners and the recording loop."""
         self.cfg.outfile.parent.mkdir(parents=True, exist_ok=True)
 
-        print(f"Recording to {self.cfg.outfile}")
-        print("Press Ctrl+Esc or Cmd+Esc ANYWHERE to stop capturing.")
+        log(f"Recording to {self.cfg.outfile}")
+        log("Press Ctrl+Esc or Cmd+Esc ANYWHERE to stop capturing.")
 
         hotkeys = keyboard.GlobalHotKeys(
             {
@@ -252,7 +262,7 @@ class PyXStepRecorder:
             # If the user happens to hit Ctrl+C inside the terminal itself
             pass
         finally:
-            print("\nStopping... Please wait while the report is generated.")
+            log("Stopping... Please wait while the report is generated.")
             hotkeys.stop()
             m_listener.stop()
             self.stop()
@@ -280,6 +290,10 @@ def run_recorder(
     """
     Entry point to start the screen recorder via CLI.
     """
+
+    if not logging.getLogger().handlers:
+        logging.basicConfig(level=logging.INFO, format="[%(asctime)s] %(message)s", datefmt="%H:%M:%S")
+
     ext = "png" if png else "jpg"
 
     config = RecorderConfig(
